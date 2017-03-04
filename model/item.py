@@ -1,8 +1,12 @@
 class Person:
-     username = ""
-     image = ""
+    username = ""
+    image = ""
 
 class Follower:
-     followed = ""
-     username = ""
-     image = ""
+    followed = ""
+    username = ""
+    image = ""
+
+class Detail:
+    repositories = 0
+    stars = 0

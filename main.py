@@ -7,7 +7,7 @@ import urllib.request
 import os.path
 from bs4 import BeautifulSoup
 from requests import session
-from model.item import Person, Follower
+from model.item import Person, Follower, Detail
 
 # Download settings
 path_file = os.path.dirname(os.path.abspath(__file__))+"/downloads/"
@@ -35,7 +35,7 @@ def start():
 
         try:
             users_file = open(aux_path, "w")
-            users_file.write("Followed_username;Followed_image;Follower_username;Follower_image"+"\n")
+            users_file.write("Followed_username;Followed_image;Followed_repositories;Followed_stars;Follower_username;Follower_image;Follower_repositories;Follower_stars"+"\n")
 
         except IOError as e:
             print("[Error] Create file:" + format(e.errno, e.strerror))
@@ -87,7 +87,7 @@ def parse_users(response, lang, users_file):
     parse_followers(lang, user_list, users_file, aux_image_file)
 
 
-# look for followers inside user_list
+# Look for followers inside user_list
 def parse_followers(lang, list, users_file, user_image):
     for item in user_list:
         aux_url = r"https://github.com/" + item + "?tab=followers"
@@ -124,15 +124,43 @@ def parse_followers(lang, list, users_file, user_image):
                 except IOError as e:
                     print("[Error] Download image file error:" + format(e.errno, e.strerror))
 
+                detail_followed = get_details(follower.followed)
+                detail_follower = get_details(follower.username)
                 # file with users
                 try:
                     users_file.write(
-                        follower.followed + ";" + user_image + ";" + follower.username + ";" + aux_img + "\n")
+                        follower.followed + ";" + user_image + ";" + str(detail_followed.repositories) + ";" + str(detail_followed.stars) + ";" +
+                        follower.username + ";" + aux_img + ";" + str(detail_follower.repositories) + ";" + str(detail_follower.stars) +"\n")
                 except IOError as e:
                     print("[Error] Write text file:" + format(e.errno, e.strerror))
 
                 i += 1
 
+# Number of repositories and stars
+def get_details(user):
+    det = Detail()
+    aux_url = r"https://github.com/" + user
+    response = session().get(aux_url)
+    soup = BeautifulSoup(response.content, "html.parser")
+
+    for link in soup.findAll('a'):
+        link_href = link.get("href")
+
+        if (link_href=="/" + user + "?tab=repositories"):
+            sp = link.findNext('span', attrs={'class':'counter'})
+            aux_rep = sp.contents[0]
+            aux_rep = aux_rep.replace(" ","")
+            aux_rep = aux_rep.replace("\n", "")
+            det.repositories = aux_rep
+
+        if (link_href == "/" + user + "?tab=stars"):
+            sp = link.findNext('span', attrs={'class': 'counter'})
+            aux_star = sp.contents[0]
+            aux_star = aux_star.replace(" ", "")
+            aux_star = aux_star.replace("\n", "")
+            det.stars = aux_star
+
+    return det
 
 if __name__ == "__main__":
     start()
